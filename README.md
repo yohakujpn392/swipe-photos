@@ -1,0 +1,30 @@
+# Swipe Photos
+
+An iPhone app for cleaning up your photo library with one thumb. It shows your photos one at a time: swipe right to keep, swipe left to mark for deletion. When you finish, you review the marked photos and delete them all with one confirmation.
+
+**Film:** [demo/swipe-photos-film.mp4](demo/swipe-photos-film.mp4) is a 29-second motion film with no sound. It is animated with illustrated photos, not recorded from a phone.
+
+**Browser demo:** [demo/index.html](demo/index.html) is a working simulation with drawn pictures. It never touches real photos.
+
+## How it works
+
+- Marked photos stay in the app's trash, and your library doesn't change until you confirm.
+- Tap a photo in the trash to put it back. Undo brings back your last decision.
+- iOS asks for confirmation once for the whole batch. Deleted photos stay in Recently Deleted for 30 days.
+- Your progress survives a restart.
+- The app has no account or server and makes no network requests of its own. It may download originals of your own photos from iCloud through Apple's Photos framework.
+
+## Run it
+
+You need a Mac with Xcode. The app requires iOS 17 or later.
+
+1. Open `PhotoSwipe.xcodeproj`.
+2. Select the `PhotoSwipe` target, open **Signing & Capabilities**, and choose your Team. A free Apple account works, but its builds stop opening after 7 days.
+3. If Xcode reports that the bundle identifier is taken, change it to one of your own.
+4. Choose your iPhone or a simulator and press **Run**.
+
+## Status
+
+Tested in the iPhone simulator: swipes, buttons, Undo, very fast use, restart, restoring from the trash, deleting and declining to delete, denied photo access, and a 300-photo library. The app has also been installed on a real iPhone.
+
+Not tested yet: a full run on a real photo library, iCloud photos, libraries with thousands of pictures, and limited photo access. The app has no icon yet.

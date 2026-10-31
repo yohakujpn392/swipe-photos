@@ -1,0 +1,437 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Swipe Photos</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a working phone is the hero; the text beside it explains what the hand is doing, then plain sections of facts. */
+:root {
+  --bg: #eef0f4; --surface: #ffffff; --fg: #171a22; --muted: #596070; --line: #d4d8e1;
+  --keep: #178a4f; --drop: #d43a3f; --link: #2257d6;
+  --display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --body: "Golos Text", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  /* The phone screen is always dark, like the real app. */
+  --app-bg: #000000; --app-card: #1a1a1c; --app-fg: #ffffff; --app-muted: #9a9aa2; --app-raised: #2a2a2e;
+  --app-blue: #2f8fff; --app-green: #30d158; --app-red: #ff453a; --app-sheet: #1c1c1e;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12141a; --surface: #1b1e27; --fg: #eef0f5; --muted: #a0a6b5; --line: #2e323e;
+  --keep: #45d07f; --drop: #ff6b6f; --link: #84a8ff; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #12141a; --surface: #1b1e27; --fg: #eef0f5; --muted: #a0a6b5; --line: #2e323e;
+  --keep: #45d07f; --drop: #ff6b6f; --link: #84a8ff; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--fg); font: 400 17px/1.55 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 64px;
+}
+.wrap { max-width: 1040px; margin-inline: auto; display: grid; gap: 64px; }
+h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(32px, 5.2vw, 54px); line-height: 1.08; font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: clamp(21px, 2.6vw, 27px); line-height: 1.2; font-weight: 500; }
+p { margin: 0; }
+.film { display: grid; gap: 10px; margin: 0; min-width: 0; }
+.film video { display: block; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 20px; }
+.film figcaption { font-size: 14px; color: var(--muted); }
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 56px; align-items: center; }
+.hero-text { display: grid; gap: 22px; min-width: 0; }
+.tag { font: 500 13px/1.4 var(--mono); color: var(--muted); }
+.lead { font-size: 20px; line-height: 1.45; max-width: 32em; }
+.legend { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.legend li { display: flex; gap: 12px; align-items: baseline; }
+.legend b { font: 500 14px/1 var(--mono); white-space: nowrap; min-width: 92px; }
+.legend .k { color: var(--keep); } .legend .d { color: var(--drop); }
+.note { font-size: 14px; color: var(--muted); max-width: 36em; }
+kbd { font: 500 12px var(--mono); border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; background: var(--surface); }
+
+/* Phone */
+.phone { width: min(340px, 100%); margin-inline: auto; padding: 10px; background: #0a0a0c; border-radius: 52px; box-shadow: 0 0 0 1.5px #3a3b40, 0 24px 50px -18px rgba(10, 14, 30, .55); }
+.screen { position: relative; height: 660px; overflow: clip; border-radius: 43px; background: var(--app-bg); color: var(--app-fg); font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--body); user-select: none; -webkit-user-select: none; }
+.island { position: absolute; top: 11px; left: 50%; width: 96px; height: 27px; margin-left: -48px; border-radius: 16px; background: #000; z-index: 5; box-shadow: 0 0 0 1px #17171a; }
+.bar { position: absolute; inset: 50px 16px auto; height: 36px; display: flex; justify-content: space-between; align-items: center; }
+.count { font-weight: 600; font-size: 16px; font-variant-numeric: tabular-nums; }
+.pill { font: 500 15px var(--body); display: flex; gap: 7px; align-items: center; padding: 6px 13px; color: var(--app-blue); background: var(--app-raised); border: 0; border-radius: 18px; cursor: pointer; font-variant-numeric: tabular-nums; }
+.deck { position: absolute; inset: 96px 16px 106px; touch-action: pan-y; cursor: grab; }
+.deck:active { cursor: grabbing; }
+.card { position: absolute; inset: 0; overflow: hidden; display: flex; align-items: center; background: var(--app-card); border-radius: 22px; will-change: transform; }
+.card svg { display: block; width: 100%; height: auto; pointer-events: none; }
+.card.under { transform: scale(.95); transition: transform .2s ease; }
+.card.fly { transition: transform .22s ease-out; pointer-events: none; }
+.card.back { transition: transform .3s cubic-bezier(.2, 1.3, .5, 1); }
+.date { position: absolute; left: 11px; bottom: 11px; padding: 5px 10px; font-size: 12px; font-weight: 500; color: #fff; background: rgba(60, 60, 66, .78); border-radius: 13px; }
+.tint { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0; pointer-events: none; }
+.tint.keep { background: rgba(48, 209, 88, .25); } .tint.drop { background: rgba(255, 69, 58, .25); }
+.tint span { padding: 9px 17px; font-weight: 700; font-size: 18px; color: #fff; border-radius: 22px; }
+.tint.keep span { background: #1fa64b; } .tint.drop span { background: #d9342b; }
+.actions { position: absolute; inset: auto 0 26px; display: flex; justify-content: center; gap: 24px; }
+.round { width: 60px; height: 60px; display: grid; place-items: center; border: 0; border-radius: 50%; cursor: pointer; }
+.round svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; }
+.round.drop { color: var(--app-red); background: rgba(255, 69, 58, .2); }
+.round.undo { color: #b5b5bc; background: var(--app-raised); }
+.round.keep { color: var(--app-green); background: rgba(48, 209, 88, .18); }
+.round:disabled { opacity: .35; cursor: default; }
+button:focus-visible { outline: 3px solid var(--app-blue); outline-offset: 2px; }
+.done { position: absolute; inset: 96px 24px 40px; display: grid; align-content: center; justify-items: center; gap: 12px; text-align: center; }
+.done strong { font-size: 20px; } .done p { font-size: 15px; color: var(--app-muted); }
+.done button { font: 500 15px var(--body); padding: 8px 15px; border: 0; border-radius: 18px; color: var(--app-blue); background: none; cursor: pointer; }
+.done button.main { color: #fff; background: var(--app-blue); }
+
+.sheet { position: absolute; inset: 44px 0 0; display: flex; flex-direction: column; background: var(--app-sheet); border-radius: 26px 26px 0 0; transform: translateY(105%); transition: transform .28s ease; z-index: 6; visibility: hidden; }
+.sheet.open { transform: none; visibility: visible; }
+.sheet header { padding: 14px 16px 6px; }
+.close { font: 500 15px var(--body); padding: 7px 14px; color: #fff; background: var(--app-raised); border: 0; border-radius: 17px; cursor: pointer; }
+.sheet h3 { margin: 11px 0 2px; font-size: 26px; }
+.sheet small { font-size: 13px; color: var(--app-muted); }
+.grid { flex: 1; overflow-y: auto; align-content: start; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding-top: 6px; }
+.grid button { aspect-ratio: 1; padding: 0; overflow: hidden; display: block; background: #000; border: 0; cursor: pointer; }
+.grid svg { display: block; width: 100%; height: 100%; }
+.empty { align-self: center; margin: auto; color: var(--app-muted); font-size: 15px; }
+.foot { padding: 12px 16px 24px; background: #26262a; }
+.destroy { width: 100%; padding: 12px; font: 600 16px var(--body); color: #fff; background: #ff453a; border: 0; border-radius: 22px; cursor: pointer; }
+.scrim { position: absolute; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(0, 0, 0, .55); z-index: 7; }
+.dialog { width: 100%; padding: 19px 16px 16px; display: grid; gap: 11px; color: #fff; background: #3b3b40; border-radius: 26px; }
+.dialog strong { font-size: 17px; line-height: 1.25; } .dialog p { font-size: 13px; line-height: 1.35; color: #d0d0d6; }
+.dialog .thumb { height: 120px; overflow: hidden; border-radius: 14px; }
+.dialog .thumb svg { display: block; width: 100%; height: 100%; }
+.dialog .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dialog button { padding: 11px 4px; font: 500 15px var(--body); color: #fff; background: #5a5a60; border: 0; border-radius: 21px; cursor: pointer; }
+.dialog button.yes { background: #0a6fdc; }
+
+/* Sections */
+section { display: grid; gap: 22px; }
+.steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; margin: 0; padding: 0; list-style: none; counter-reset: step; }
+.steps li { display: grid; gap: 7px; align-content: start; min-width: 0; counter-increment: step; }
+.steps li::before { content: counter(step); font: 700 34px/1 var(--display); color: var(--muted); }
+.steps b { font-weight: 600; }
+.steps span { color: var(--muted); font-size: 16px; }
+.split { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px; }
+.split > div { display: grid; gap: 14px; align-content: start; min-width: 0; }
+.status { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+.status li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 16px; }
+.status i { font: 500 15px var(--mono); font-style: normal; }
+.status .ok { color: var(--keep); } .status .wait { color: var(--muted); }
+.spec { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; margin: 0; padding: 20px 0 0; border-top: 1px solid var(--line); }
+.spec div { min-width: 0; } .spec dt { font: 500 12px var(--mono); color: var(--muted); margin-bottom: 4px; } .spec dd { margin: 0; font-weight: 500; }
+
+@media (max-width: 820px) {
+  body { padding-block: 24px 48px; }
+  .wrap { gap: 48px; }
+  .hero { grid-template-columns: minmax(0, 1fr); gap: 30px; }
+  .steps, .split { grid-template-columns: minmax(0, 1fr); }
+  .spec { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) { .card, .card.fly, .card.back, .card.under, .sheet { transition: none; } }
+</style>
+
+<div class="wrap">
+  <figure class="film">
+    <video src="swipe-photos-film.mp4" poster="swipe-photos-poster.jpg" controls muted loop playsinline preload="metadata" aria-label="Swipe Photos motion film, 29 seconds, no sound"></video>
+    <figcaption>A 29-second motion film with no sound. It is animated with illustrated photos, not recorded from a phone.</figcaption>
+  </figure>
+  <div class="hero">
+    <div class="hero-text">
+      <span class="tag">iPhone app · live browser demo</span>
+      <h1>Clean up your camera roll with one thumb</h1>
+      <p class="lead">Swipe Photos shows your pictures one at a time. Keep the good ones, send the rest to the trash, and delete them all at once when you finish.</p>
+      <ul class="legend">
+        <li><b class="k">right →</b><span>keep the photo</span></li>
+        <li><b class="d">← left</b><span>move it to the trash</span></li>
+      </ul>
+      <p class="note">The phone on this page works. Drag a card with your mouse or finger, or press <kbd>←</kbd> <kbd>→</kbd>. The pictures are drawn for this demo, and this page never touches real photos.</p>
+    </div>
+    <div class="phone" aria-label="App simulation">
+      <div class="screen" id="screen">
+        <div class="island"></div>
+        <div class="bar">
+          <span class="count" id="count"></span>
+          <button class="pill" id="openTrash" aria-label="Open trash">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5"/></svg>
+            <span id="trashCount">0</span>
+          </button>
+        </div>
+        <div class="deck" id="deck"></div>
+        <div class="actions" id="actions">
+          <button class="round drop" id="btnDrop" aria-label="Move to trash"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5"/></svg></button>
+          <button class="round undo" id="btnUndo" aria-label="Undo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+          <button class="round keep" id="btnKeep" aria-label="Keep"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg></button>
+        </div>
+        <div class="done" id="done" hidden></div>
+        <div class="sheet" id="sheet" aria-label="Trash">
+          <header>
+            <button class="close" id="closeTrash">Done</button>
+            <h3>Trash</h3>
+            <small id="sheetHint">Tap a photo to put it back</small>
+          </header>
+          <div class="grid" id="grid"></div>
+          <div class="foot" id="foot"><button class="destroy" id="destroy"></button></div>
+        </div>
+        <div class="scrim" id="scrim" hidden>
+          <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+            <strong id="dlgTitle"></strong>
+            <p id="dlgText"></p>
+            <div class="thumb" id="dlgThumb"></div>
+            <div class="row"><button id="dlgNo">Don't Allow</button><button class="yes" id="dlgYes">Delete</button></div>
+          </div>
+        </div>
+        <div id="live" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)"></div>
+      </div>
+    </div>
+  </div>
+
+  <section>
+    <h2>From cluttered to clean in three steps</h2>
+    <ol class="steps">
+      <li><b>Swipe</b><span>Each decision takes a second. If you change your mind, Undo brings back the last photo.</span></li>
+      <li><b>Check the trash</b><span>Tap a photo to put it back. Your library stays untouched until you confirm.</span></li>
+      <li><b>Confirm once</b><span>iOS asks once for the whole batch. Photos stay in Recently Deleted for 30 days.</span></li>
+    </ol>
+  </section>
+
+  <section class="split">
+    <div>
+      <h2>Tested so far</h2>
+      <ul class="status">
+        <li><i class="ok">✓</i><span>Swipes, buttons and Undo, including very fast use</span></li>
+        <li><i class="ok">✓</i><span>Deleting four photos with one confirmation, and declining to delete</span></li>
+        <li><i class="ok">✓</i><span>Progress and trash survive a restart</span></li>
+        <li><i class="ok">✓</i><span>A 300-photo library in the iPhone simulator</span></li>
+        <li><i class="ok">✓</i><span>Installing and launching on a real iPhone</span></li>
+      </ul>
+    </div>
+    <div>
+      <h2>Still to do</h2>
+      <ul class="status">
+        <li><i class="wait">○</i><span>A full run on a real photo library</span></li>
+        <li><i class="wait">○</i><span>iCloud photos and libraries with thousands of pictures</span></li>
+        <li><i class="wait">○</i><span>Limited photo access</span></li>
+        <li><i class="wait">○</i><span>App icon</span></li>
+        <li><i class="wait">○</i><span>Distribution: for now the app installs only through Xcode</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <dl class="spec">
+      <div><dt>Platform</dt><dd>iOS 17 or later</dd></div>
+      <div><dt>Built with</dt><dd>SwiftUI, PhotoKit</dd></div>
+      <div><dt>Shows</dt><dd>Photos only, no videos</dd></div>
+      <div><dt>Network</dt><dd>No servers and no network requests of its own</dd></div>
+    </dl>
+  </section>
+</div>
+
+<script>
+(function () {
+  function sun(a, b, c, x, y, r, sunC) {
+    return '<rect width="300" height="400" fill="url(#g)"/><defs><linearGradient id="g" x2="0" y2="1"><stop stop-color="' + a + '"/><stop offset=".6" stop-color="' + b + '"/><stop offset="1" stop-color="' + c + '"/></linearGradient></defs><circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + sunC + '"/>';
+  }
+  var scenes = {
+    sunset: sun('#23305f', '#e4694e', '#f7bd6c', 150, 245, 46, '#ffe3a1') + '<path d="M0 275c60-22 100 8 150-6s90-20 150 2v129H0z" fill="#2d1b3d"/><path d="M0 330c70-20 130 12 300-14v84H0z" fill="#170f26"/>',
+    blurry: '<rect width="300" height="400" fill="#7f8b78"/><g style="filter:blur(22px)"><circle cx="90" cy="130" r="80" fill="#d9c9a3"/><circle cx="210" cy="230" r="95" fill="#47563f"/><circle cx="110" cy="320" r="70" fill="#a3755a"/></g>',
+    mountain: sun('#7fc0ea', '#cfe7f2', '#e9f3ee', 225, 85, 26, '#fff7d6') + '<path d="M0 300 90 135l52 82 40-55 118 138v100H0z" fill="#44566f"/><path d="m90 135 26 42-16-5-13 15-17-7zM182 162l24 28-14-3-11 12-16-9z" fill="#fff"/><path d="M0 335c90-30 180 8 300-20v85H0z" fill="#3f7050"/>',
+    receipt: '<rect width="300" height="400" fill="#8c8c92"/><path d="M72 34h156v326l-13-9-13 9-13-9-13 9-13-9-13 9-13-9-13 9-13-9-13 9-13-9-13 9z" fill="#f6f5f0"/><g fill="#55565c"><rect x="92" y="60" width="116" height="14"/><rect x="92" y="96" width="70" height="7"/><rect x="178" y="96" width="30" height="7"/><rect x="92" y="118" width="84" height="7"/><rect x="178" y="118" width="30" height="7"/><rect x="92" y="140" width="56" height="7"/><rect x="178" y="140" width="30" height="7"/><rect x="92" y="162" width="76" height="7"/><rect x="178" y="162" width="30" height="7"/><rect x="92" y="208" width="62" height="12"/><rect x="164" y="208" width="44" height="12"/></g>',
+    sea: sun('#67b6d9', '#a7dcdf', '#e5f3e4', 70, 80, 30, '#fff5c4') + '<rect y="205" width="300" height="195" fill="#1d7f9a"/><path d="M0 240c40-11 60 11 100 0s60 11 100 0 60 11 100 0M0 285c40-11 60 11 100 0s60 11 100 0 60 11 100 0M0 330c40-11 60 11 100 0s60 11 100 0 60 11 100 0" fill="none" stroke="#c4eef0" stroke-width="4" opacity=".65"/><path d="m200 214 44-52v52zM240 214l-12 15h-48l-10-15z" fill="#fff"/>',
+    screenshot: '<rect width="300" height="400" fill="#f1f2f6"/><rect width="300" height="54" fill="#fff"/><rect x="16" y="22" width="110" height="12" rx="6" fill="#23252c"/><g fill="#fff"><rect x="14" y="70" width="272" height="86" rx="14"/><rect x="14" y="168" width="272" height="86" rx="14"/><rect x="14" y="266" width="272" height="86" rx="14"/></g><g fill="#c9ccd6"><circle cx="48" cy="113" r="21"/><circle cx="48" cy="211" r="21"/><circle cx="48" cy="309" r="21"/><rect x="82" y="96" width="160" height="10" rx="5"/><rect x="82" y="116" width="110" height="10" rx="5"/><rect x="82" y="194" width="170" height="10" rx="5"/><rect x="82" y="214" width="90" height="10" rx="5"/><rect x="82" y="292" width="140" height="10" rx="5"/><rect x="82" y="312" width="120" height="10" rx="5"/></g>',
+    forest: sun('#ecdca8', '#c4cf96', '#6d9a5e', 205, 80, 36, '#fff1b8') + '<g fill="#2b5a41"><path d="m50 110 58 170H-8zM150 70l70 220H80zM252 118l60 170H192z"/></g><g fill="#1b4331"><path d="m100 170 50 150H50zM205 180l52 145H153z"/></g><rect y="310" width="300" height="90" fill="#35583a"/>',
+    dark: '<rect width="300" height="400" fill="#0d0d11"/><circle cx="162" cy="222" r="44" fill="#1e1c20"/><circle cx="194" cy="186" r="7" fill="#46424a"/>',
+    city: sun('#2e2a57', '#7a4b86', '#e78d7a', 74, 96, 22, '#f8e2bd') + '<g fill="#17172d"><rect x="0" y="210" width="62" height="190"/><rect x="70" y="150" width="70" height="250"/><rect x="150" y="225" width="58" height="175"/><rect x="216" y="130" width="84" height="270"/></g><g fill="#ffd27a"><rect x="84" y="170" width="10" height="13"/><rect x="112" y="210" width="10" height="13"/><rect x="84" y="255" width="10" height="13"/><rect x="236" y="155" width="11" height="14"/><rect x="268" y="205" width="11" height="14"/><rect x="236" y="262" width="11" height="14"/><rect x="18" y="248" width="10" height="13"/><rect x="170" y="255" width="10" height="13"/></g>'
+  };
+  var uid = 0;
+  function art(kind) {
+    var id = 'g' + (++uid);
+    return '<svg viewBox="0 0 300 400" preserveAspectRatio="xMidYMid slice" aria-hidden="true">' + scenes[kind].replace(/id="g"/g, 'id="' + id + '"').replace(/url\(#g\)/g, 'url(#' + id + ')') + '</svg>';
+  }
+  var library = [
+    { kind: 'sunset', date: 'Aug 14, 2026', name: 'sunset' },
+    { kind: 'blurry', date: 'Aug 14, 2026', name: 'blurry photo' },
+    { kind: 'mountain', date: 'Jul 2, 2026', name: 'mountains' },
+    { kind: 'receipt', date: 'Jun 19, 2026', name: 'old receipt' },
+    { kind: 'sea', date: 'Jun 8, 2026', name: 'sea' },
+    { kind: 'screenshot', date: 'May 30, 2026', name: 'forgotten screenshot' },
+    { kind: 'forest', date: 'May 11, 2026', name: 'forest' },
+    { kind: 'dark', date: 'May 3, 2026', name: 'accidental dark photo' },
+    { kind: 'city', date: 'Apr 21, 2026', name: 'city' }
+  ];
+  var $ = function (id) { return document.getElementById(id); };
+  var deck = $('deck'), THRESHOLD = 90;
+  var queue, trash, history, kept, removed, drag = null;
+
+  function reset() {
+    deck.innerHTML = '';
+    queue = library.slice(); trash = []; history = []; kept = 0; removed = 0;
+    closeDialog(); $('sheet').classList.remove('open');
+    render();
+  }
+  function cardEl(photo, isTop) {
+    var el = document.createElement('div');
+    el.className = 'card' + (isTop ? '' : ' under');
+    el.dataset.kind = photo.kind;
+    el.innerHTML = art(photo.kind) +
+      '<span class="date">' + photo.date + '</span>' +
+      '<div class="tint keep"><span>Keep</span></div><div class="tint drop"><span>Trash</span></div>';
+    return el;
+  }
+  function liveCards() { return Array.prototype.slice.call(deck.querySelectorAll('.card:not(.fly)')); }
+  function topCard() { var c = liveCards(); return c[c.length - 1] || null; }
+  function render() {
+    // Rebuilds resting cards only; a card still flying off keeps animating on top.
+    liveCards().forEach(function (c) { c.remove(); });
+    var firstFly = deck.querySelector('.fly');
+    queue.slice(0, 2).reverse().forEach(function (photo) {
+      deck.insertBefore(cardEl(photo, photo === queue[0]), firstFly);
+    });
+    $('count').textContent = 'Left: ' + queue.length;
+    $('trashCount').textContent = trash.length;
+    $('btnUndo').disabled = history.length === 0;
+    var finished = queue.length === 0;
+    deck.hidden = finished; $('actions').hidden = finished; $('done').hidden = !finished;
+    if (finished) renderDone();
+    renderTrash();
+  }
+  function renderDone() {
+    var box = $('done');
+    box.innerHTML = '';
+    var strong = document.createElement('strong'), p = document.createElement('p');
+    strong.textContent = 'All photos reviewed';
+    p.textContent = trash.length ? 'Open the trash to delete the photos you marked' : 'Kept: ' + kept + ', deleted: ' + removed;
+    box.append(strong, p);
+    function add(label, fn, main) {
+      var b = document.createElement('button');
+      b.textContent = label; if (main) b.className = 'main';
+      b.addEventListener('click', fn); box.append(b);
+    }
+    if (trash.length) add('Open Trash', openTrash, true);
+    if (history.length) add('Undo Last', undo);
+    add('Start Over', reset, !trash.length);
+  }
+  function renderTrash() {
+    var grid = $('grid');
+    grid.innerHTML = '';
+    $('sheetHint').hidden = trash.length === 0;
+    $('foot').hidden = trash.length === 0;
+    if (!trash.length) {
+      grid.innerHTML = '<p class="empty">Trash is empty</p>';
+      grid.style.display = 'flex';
+      return;
+    }
+    grid.style.display = '';
+    trash.forEach(function (photo) {
+      var b = document.createElement('button');
+      b.innerHTML = art(photo.kind);
+      b.setAttribute('aria-label', 'Put back: ' + photo.name);
+      b.addEventListener('click', function () { restore(photo); });
+      grid.append(b);
+    });
+    $('destroy').textContent = 'Delete ' + trash.length + (trash.length === 1 ? ' Photo' : ' Photos');
+  }
+  function paint(el, dx, dy) {
+    el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) rotate(' + dx / 22 + 'deg)';
+    var progress = Math.min(Math.abs(dx) / THRESHOLD, 1);
+    el.querySelector('.tint.keep').style.opacity = dx > 0 ? progress : 0;
+    el.querySelector('.tint.drop').style.opacity = dx < 0 ? progress : 0;
+  }
+  function decide(decision, startX, startY) {
+    var el = topCard();
+    if (!el || !queue.length) return;
+    // The decision lands immediately, so the next swipe is never lost while this card flies.
+    var photo = queue.shift();
+    history.push({ photo: photo, decision: decision });
+    if (decision === 'keep') kept++; else trash.unshift(photo);
+    $('live').textContent = decision === 'keep' ? 'Kept: ' + photo.name : 'In trash: ' + photo.name;
+    paint(el, startX || 0, startY || 0);
+    el.classList.remove('back');
+    el.classList.add('fly');
+    void el.offsetWidth;
+    paint(el, decision === 'keep' ? 520 : -520, startY || 0);
+    setTimeout(function () { el.remove(); }, 240);
+    render();
+    var top = topCard();
+    if (top) { top.classList.add('under'); void top.offsetWidth; top.classList.remove('under'); }
+  }
+  function undo() {
+    var last = history.pop();
+    if (!last) return;
+    if (last.decision === 'keep') kept--; else trash = trash.filter(function (p) { return p !== last.photo; });
+    queue.unshift(last.photo);
+    render();
+  }
+  function restore(photo) {
+    trash = trash.filter(function (p) { return p !== photo; });
+    history = history.filter(function (h) { return h.photo !== photo; });
+    queue.unshift(photo);
+    render();
+  }
+  function openTrash() { $('sheet').classList.add('open'); $('closeTrash').focus({ preventScroll: true }); }
+  function closeTrash() { $('sheet').classList.remove('open'); }
+  function closeDialog() { $('scrim').hidden = true; }
+
+  deck.addEventListener('pointerdown', function (e) {
+    var el = topCard();
+    if (!el) return;
+    el.classList.remove('back');
+    deck.setPointerCapture(e.pointerId);
+    drag = { el: el, x: e.clientX, y: e.clientY, dx: 0, dy: 0, lastX: e.clientX, lastT: e.timeStamp, vx: 0 };
+  });
+  deck.addEventListener('pointermove', function (e) {
+    if (!drag) return;
+    drag.dx = e.clientX - drag.x; drag.dy = e.clientY - drag.y;
+    var dt = e.timeStamp - drag.lastT;
+    if (dt > 0) drag.vx = (e.clientX - drag.lastX) / dt;
+    drag.lastX = e.clientX; drag.lastT = e.timeStamp;
+    paint(drag.el, drag.dx, drag.dy);
+  });
+  function endDrag(cancelled) {
+    if (!drag) return;
+    var d = drag; drag = null;
+    var predicted = d.dx + d.vx * 150;
+    if (!cancelled && predicted > THRESHOLD && d.dx > 0) decide('keep', d.dx, d.dy);
+    else if (!cancelled && predicted < -THRESHOLD && d.dx < 0) decide('drop', d.dx, d.dy);
+    else { d.el.classList.add('back'); paint(d.el, 0, 0); }
+  }
+  deck.addEventListener('pointerup', function () { endDrag(false); });
+  deck.addEventListener('pointercancel', function () { endDrag(true); });
+
+  $('btnKeep').addEventListener('click', function () { decide('keep'); });
+  $('btnDrop').addEventListener('click', function () { decide('drop'); });
+  $('btnUndo').addEventListener('click', undo);
+  $('openTrash').addEventListener('click', openTrash);
+  $('closeTrash').addEventListener('click', closeTrash);
+  $('destroy').addEventListener('click', function () {
+    var n = trash.length;
+    $('dlgTitle').textContent = n === 1 ? 'Allow “Swipe Photos” to delete this photo?' : 'Allow “Swipe Photos” to delete ' + n + ' photos?';
+    $('dlgText').textContent = 'They will be removed from your library and stay in Recently Deleted for 30 days.';
+    $('dlgThumb').innerHTML = art(trash[0].kind);
+    $('scrim').hidden = false;
+    $('dlgYes').focus({ preventScroll: true });
+  });
+  $('dlgNo').addEventListener('click', closeDialog);
+  $('dlgYes').addEventListener('click', function () {
+    var gone = trash;
+    removed += gone.length;
+    history = history.filter(function (h) { return gone.indexOf(h.photo) === -1; });
+    trash = [];
+    closeDialog(); closeTrash();
+    $('live').textContent = 'Deleted photos: ' + gone.length;
+    render();
+  });
+  document.addEventListener('keydown', function (e) {
+    if ($('sheet').classList.contains('open') || !$('scrim').hidden) return;
+    if (e.key === 'ArrowRight') { e.preventDefault(); decide('keep'); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); decide('drop'); }
+  });
+  reset();
+
+  // The film plays by itself unless the viewer prefers less motion; its arrow keys seek, not swipe.
+  const film = document.querySelector('.film video');
+  film.addEventListener('keydown', (e) => e.stopPropagation());
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) film.play().catch(() => {});
+})();
+</script>
