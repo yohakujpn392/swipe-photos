@@ -23,8 +23,30 @@ You need a Mac with Xcode. The app requires iOS 17 or later.
 3. If Xcode reports that the bundle identifier is taken, change it to one of your own.
 4. Choose your iPhone or a simulator and press **Run**.
 
+## Verify it yourself
+
+You don't have to take our word for any of this.
+
+**Read the code.** It is six short Swift files in `PhotoSwipe/`. To look for networking code, run this from the repo root:
+
+```bash
+grep -rnE 'URLSession|NWConnection|NWPathMonitor|CFNetwork|WKWebView|https?://' PhotoSwipe
+```
+
+It should print nothing. The app imports only Apple's SwiftUI and Photos frameworks and uses no third-party packages.
+
+**Build it yourself.** Follow the steps in [Run it](#run-it). You then know the app on your phone came from this code. A copy installed any other way can't be proven to match it just by reading this repo.
+
+**Watch it on your iPhone.** Go to **Settings → Privacy & Security → App Privacy Report** and turn it on. Use the app for a while, then check which domains it contacted. Apple's Photos framework handles any iCloud downloads, so they may not appear as the app's own traffic.
+
+**Start small.** When iOS asks for photo access, tap **Select Photos** and choose a few you don't need. The app can only see those.
+
+**Test the safety net.** Mark a photo and delete it. iOS asks you to confirm, and the app can't skip that step. The photo then stays in **Recently Deleted** for 30 days, where you can recover it in the Photos app.
+
 ## Status
 
-Tested in the iPhone simulator: swipes, buttons, Undo, very fast use, restart, restoring from the trash, deleting and declining to delete, denied photo access, and a 300-photo library. The app has also been installed on a real iPhone.
+Tested in the iPhone simulator: swipes, buttons, Undo, very fast use, restart, restoring from the trash, deleting and declining to delete, denied photo access, limited photo access, and a 300-photo library. The app has also been installed on a real iPhone.
 
-Not tested yet: a full run on a real photo library, iCloud photos, libraries with thousands of pictures, and limited photo access. The app has no icon yet.
+With limited access, the test granted 3 of 307 photos. The app showed only those 3, and deleting 2 of them took the library to 305. "All photos reviewed" then refers only to the photos you selected. To change the selection, go to **Settings → Privacy & Security → Photos → Swipe Photos**.
+
+Not tested yet: a full run on a real photo library, iCloud photos, libraries with thousands of pictures, and changing the selection later. The app has no icon yet.
