@@ -1,12 +1,14 @@
+import AVFoundation
 import Photos
 import SwiftUI
 
-/// The stack of photo cards: drag right to keep, drag left to mark for deletion.
+/// The stack of photo and video cards: drag right to keep, drag left to mark for deletion.
 struct SwipeDeck: View {
     @EnvironmentObject private var store: PhotoStore
 
     @State private var offset: CGSize = .zero
     @State private var flight: Flight?
+    @State private var isMuted = true
 
     /// A card on its way off screen, whose decision hasn't been recorded yet.
     private struct Flight {
@@ -39,6 +41,16 @@ struct SwipeDeck: View {
     private func card(for asset: PHAsset, isTop: Bool) -> some View {
         AssetImage(asset: asset, pixelSize: 1600, contentMode: .fit)
             .background(Color(white: 0.1))
+            .overlay {
+                if isTop && asset.isVideo {
+                    AssetVideo(asset: asset, isMuted: isMuted)
+                }
+            }
+            .overlay(alignment: .topTrailing) {
+                if asset.isVideo {
+                    videoControls(for: asset, isTop: isTop)
+                }
+            }
             .overlay(alignment: .bottomLeading) {
                 if let date = asset.creationDate {
                     Text(date.formatted(date: .long, time: .omitted))
@@ -58,6 +70,40 @@ struct SwipeDeck: View {
             .scaleEffect(isTop ? 1 : 0.95)
             .offset(isTop ? offset : .zero)
             .rotationEffect(.degrees(isTop ? Double(offset.width / 22) : 0))
+    }
+
+    private func videoControls(for asset: PHAsset, isTop: Bool) -> some View {
+        HStack(spacing: 8) {
+            Text(asset.durationText)
+                .font(.footnote.weight(.medium))
+                .monospacedDigit()
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(.ultraThinMaterial, in: Capsule())
+
+            if isTop {
+                Button {
+                    toggleSound()
+                } label: {
+                    Image(systemName: isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                        .font(.footnote)
+                        .frame(width: 32, height: 32)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(isMuted ? "Turn sound on" : "Turn sound off")
+            }
+        }
+        .padding(12)
+    }
+
+    /// Sound stays off until asked for, so opening the app never interrupts other audio.
+    private func toggleSound() {
+        isMuted.toggle()
+        if !isMuted {
+            try? AVAudioSession.sharedInstance().setCategory(.playback)
+            try? AVAudioSession.sharedInstance().setActive(true)
+        }
     }
 
     private var verdictOverlay: some View {

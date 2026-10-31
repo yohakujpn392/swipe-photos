@@ -69,11 +69,11 @@ struct ContentView: View {
 
     private var finished: some View {
         ContentUnavailableView {
-            Label("All photos reviewed", systemImage: "checkmark.circle")
+            Label("Everything reviewed", systemImage: "checkmark.circle")
         } description: {
             Text(store.trash.isEmpty
                  ? "Kept: \(store.keptCount)"
-                 : "Open the trash to delete the photos you marked")
+                 : "Open the trash to delete what you marked")
         } actions: {
             if !store.trash.isEmpty {
                 Button("Open Trash") { isTrashOpen = true }
@@ -92,7 +92,7 @@ struct ContentView: View {
         ContentUnavailableView {
             Label("No Photo Access", systemImage: "photo.badge.exclamationmark")
         } description: {
-            Text("Allow photo library access in Settings to review your photos.")
+            Text("Allow photo library access in Settings to review your photos and videos.")
         } actions: {
             Button("Open Settings") {
                 if let url = URL(string: UIApplication.openSettingsURLString) {

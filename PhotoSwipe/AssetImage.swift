@@ -1,7 +1,7 @@
 import Photos
 import SwiftUI
 
-/// Shows a library photo: a blurry preview first, then the full version (downloaded from iCloud if needed).
+/// Shows a library photo or a video's thumbnail: a blurry preview first, then the full version (downloaded from iCloud if needed).
 struct AssetImage: View {
     let asset: PHAsset
     let pixelSize: CGFloat
@@ -20,7 +20,7 @@ struct AssetImage: View {
                 Image(systemName: "photo.badge.exclamationmark")
                     .font(.largeTitle)
                     .foregroundStyle(.secondary)
-                    .accessibilityLabel("Photo failed to load")
+                    .accessibilityLabel("Failed to load")
             } else {
                 ProgressView()
             }

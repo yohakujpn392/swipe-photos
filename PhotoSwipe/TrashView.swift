@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The photos marked for deletion: tap one to take it back, or delete them all at once.
+/// The items marked for deletion: tap one to take it back, or delete them all at once.
 struct TrashView: View {
     @EnvironmentObject private var store: PhotoStore
     @Environment(\.dismiss) private var dismiss
@@ -16,7 +16,7 @@ struct TrashView: View {
                     ContentUnavailableView("Trash Is Empty", systemImage: "trash")
                 } else {
                     ScrollView {
-                        Text("Tap a photo to put it back")
+                        Text("Tap an item to put it back")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                             .padding(.top, 8)
@@ -32,9 +32,19 @@ struct TrashView: View {
                                             AssetImage(asset: asset, pixelSize: 300, contentMode: .fill)
                                         }
                                         .clipped()
+                                        .overlay(alignment: .bottomTrailing) {
+                                            if asset.isVideo {
+                                                Text(asset.durationText)
+                                                    .font(.caption2.weight(.semibold))
+                                                    .monospacedDigit()
+                                                    .foregroundStyle(.white)
+                                                    .shadow(radius: 2)
+                                                    .padding(6)
+                                            }
+                                        }
                                 }
                                 .buttonStyle(.plain)
-                                .accessibilityLabel("Put photo back")
+                                .accessibilityLabel("Put back")
                             }
                         }
                     }
@@ -66,7 +76,7 @@ struct TrashView: View {
                 }
             }
         } label: {
-            Text(store.trash.count == 1 ? "Delete 1 Photo" : "Delete \(store.trash.count) Photos")
+            Text(store.trash.count == 1 ? "Delete 1 Item" : "Delete \(store.trash.count) Items")
                 .font(.headline)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)

@@ -1,7 +1,7 @@
 import Photos
 import SwiftUI
 
-/// Holds the review queue and the photos marked for deletion.
+/// Holds the review queue and the photos and videos marked for deletion.
 /// Nothing leaves the library until `emptyTrash()` runs and the user confirms iOS's own dialog.
 @MainActor
 final class PhotoStore: ObservableObject {
@@ -19,6 +19,7 @@ final class PhotoStore: ObservableObject {
 
     private var keptIDs: Set<String>
     private var trashIDs: [String]
+    private var latestReload = 0
 
     private static let keptKey = "keptAssetIDs"
     private static let trashKey = "trashAssetIDs"
@@ -42,19 +43,30 @@ final class PhotoStore: ObservableObject {
         await reload()
     }
 
-    /// Re-reads the library and rebuilds the queue, leaving out photos already decided on.
+    /// Re-reads the library and rebuilds the queue, leaving out items already decided on.
     func reload() async {
         guard hasAccess else { return }
+
+        latestReload += 1
+        let thisReload = latestReload
 
         let assets = await Task.detached(priority: .userInitiated) { () -> [PHAsset] in
             let options = PHFetchOptions()
             options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
-            let result = PHAsset.fetchAssets(with: .image, options: options)
+            options.predicate = NSPredicate(
+                format: "mediaType == %d OR mediaType == %d",
+                PHAssetMediaType.image.rawValue,
+                PHAssetMediaType.video.rawValue
+            )
+            let result = PHAsset.fetchAssets(with: options)
             var assets: [PHAsset] = []
             assets.reserveCapacity(result.count)
             result.enumerateObjects { asset, _, _ in assets.append(asset) }
             return assets
         }.value
+
+        // A newer reload has started, and this result may still list items deleted since.
+        guard thisReload == latestReload else { return }
 
         // Filtered here, not in the detached task, so swipes made during the fetch are respected.
         let pending = Set(trashIDs)
@@ -92,7 +104,7 @@ final class PhotoStore: ObservableObject {
         persist()
     }
 
-    /// Takes a photo back out of the trash and returns it to the front of the queue.
+    /// Takes an item back out of the trash and returns it to the front of the queue.
     func restore(_ asset: PHAsset) {
         trash.removeAll { $0 == asset }
         trashIDs.removeAll { $0 == asset.localIdentifier }
@@ -101,7 +113,7 @@ final class PhotoStore: ObservableObject {
         persist()
     }
 
-    /// Moves the marked photos to "Recently Deleted". iOS shows its own confirmation first.
+    /// Moves the marked items to "Recently Deleted". iOS shows its own confirmation first.
     func emptyTrash() async {
         let assets = trash
         guard !assets.isEmpty else { return }
@@ -126,9 +138,10 @@ final class PhotoStore: ObservableObject {
         trashIDs.removeAll { deleted.contains($0) }
         history.removeAll { deleted.contains($0.asset.localIdentifier) }
         persist()
+        await reload()
     }
 
-    /// Forgets which photos were kept, so the whole library comes up for review again.
+    /// Forgets which items were kept, so the whole library comes up for review again.
     func startOver() async {
         keptIDs.removeAll()
         history.removeAll()

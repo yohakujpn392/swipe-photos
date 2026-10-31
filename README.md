@@ -1,6 +1,6 @@
 # Swipe Photos
 
-An iPhone app for cleaning up your photo library with one thumb. It shows your photos one at a time: swipe right to keep, swipe left to mark for deletion. When you finish, you review the marked photos and delete them all with one confirmation.
+An iPhone app for cleaning up your photo library with one thumb. It shows your photos and videos one at a time: swipe right to keep, swipe left to mark for deletion. When you finish, you review what you marked and delete it all with one confirmation.
 
 **Film:** [demo/swipe-photos-film.mp4](demo/swipe-photos-film.mp4) is a 29-second motion film with no sound. It is animated with illustrated photos, not recorded from a phone.
 
@@ -8,11 +8,12 @@ An iPhone app for cleaning up your photo library with one thumb. It shows your p
 
 ## How it works
 
-- Marked photos stay in the app's trash, and your library doesn't change until you confirm.
-- Tap a photo in the trash to put it back. Undo brings back your last decision.
-- iOS asks for confirmation once for the whole batch. Deleted photos stay in Recently Deleted for 30 days.
+- Marked items stay in the app's trash, and your library doesn't change until you confirm.
+- Videos play on a loop with the sound off. A button on the card turns the sound on.
+- Tap an item in the trash to put it back. Undo brings back your last decision.
+- iOS asks for confirmation once for the whole batch. Deleted items stay in Recently Deleted for 30 days.
 - Your progress survives a restart.
-- The app has no account or server and makes no network requests of its own. It may download originals of your own photos from iCloud through Apple's Photos framework.
+- The app has no account or server and makes no network requests of its own. It may download originals of your own photos and videos from iCloud through Apple's Photos framework.
 
 ## Run it
 
@@ -45,8 +46,8 @@ It should print nothing. The app imports only Apple's SwiftUI and Photos framewo
 
 ## Status
 
-Tested in the iPhone simulator: swipes, buttons, Undo, very fast use, restart, restoring from the trash, deleting and declining to delete, denied photo access, limited photo access, and a 300-photo library. The app has also been installed on a real iPhone.
+Tested in the iPhone simulator: swipes, buttons, Undo, very fast use, restart, restoring from the trash, deleting and declining to delete, denied photo access, limited photo access, a 300-photo library, and short videos: playback, looping, swiping and deleting. The app has also been installed on a real iPhone.
 
-With limited access, the test granted 3 of 307 photos. The app showed only those 3, and deleting 2 of them took the library to 305. "All photos reviewed" then refers only to the photos you selected. To change the selection, go to **Settings → Privacy & Security → Photos → Swipe Photos**.
+With limited access, the test granted 3 of 307 photos. The app showed only those 3, and deleting 2 of them took the library to 305. "Everything reviewed" then refers only to the photos you selected. To change the selection, go to **Settings → Privacy & Security → Photos → Swipe Photos**.
 
-Not tested yet: a full run on a real photo library, iCloud photos, libraries with thousands of pictures, and changing the selection later. The app has no icon yet.
+Not tested yet: a full run on a real library with the current version, sound output, long videos, iCloud photos and videos, libraries with thousands of pictures, and changing the selection later. The app has no icon yet.
