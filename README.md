@@ -50,4 +50,4 @@ Tested in the iPhone simulator: swipes, buttons, Undo, very fast use, restart, r
 
 With limited access, the test granted 3 of 307 photos. The app showed only those 3, and deleting 2 of them took the library to 305. "Everything reviewed" then refers only to the photos you selected. To change the selection, go to **Settings → Privacy & Security → Photos → Swipe Photos**.
 
-Not tested yet: a full run on a real library with the current version, sound output, long videos, iCloud photos and videos, libraries with thousands of pictures, and changing the selection later. The app has no icon yet.
+Not tested yet: a full run on a real library with the current version, sound output, long videos, iCloud photos and videos, libraries with thousands of pictures, and changing the selection later.
