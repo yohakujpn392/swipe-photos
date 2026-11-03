@@ -16,18 +16,37 @@ final class PhotoStore: ObservableObject {
     @Published private(set) var trash: [PHAsset] = []
     @Published private(set) var history: [(asset: PHAsset, decision: Decision)] = []
     @Published var errorMessage: String?
+    /// Set when iOS interrupted a deletion, which Apple documents as safe to retry.
+    @Published var canRetryDelete = false
 
     private var keptIDs: Set<String>
     private var trashIDs: [String]
     private var latestReload = 0
+    private var isDeleting = false
+
+    /// Decisions as written to disk after every swipe.
+    private struct Saved: Codable {
+        var kept: [String]
+        var trash: [String]
+    }
 
     private static let keptKey = "keptAssetIDs"
     private static let trashKey = "trashAssetIDs"
 
+    private static let fileURL = URL.applicationSupportDirectory.appending(path: "decisions.json")
+
     init() {
-        let defaults = UserDefaults.standard
-        keptIDs = Set(defaults.stringArray(forKey: Self.keptKey) ?? [])
-        trashIDs = defaults.stringArray(forKey: Self.trashKey) ?? []
+        if let data = try? Data(contentsOf: Self.fileURL),
+           let saved = try? JSONDecoder().decode(Saved.self, from: data) {
+            keptIDs = Set(saved.kept)
+            trashIDs = saved.trash
+        } else {
+            // Earlier versions kept decisions in UserDefaults; carry them over once.
+            let defaults = UserDefaults.standard
+            keptIDs = Set(defaults.stringArray(forKey: Self.keptKey) ?? [])
+            trashIDs = defaults.stringArray(forKey: Self.trashKey) ?? []
+            persist()
+        }
     }
 
     var hasAccess: Bool {
@@ -45,7 +64,8 @@ final class PhotoStore: ObservableObject {
 
     /// Re-reads the library and rebuilds the queue, leaving out items already decided on.
     func reload() async {
-        guard hasAccess else { return }
+        // Reading the library while a deletion is in progress gains nothing; it reloads once that ends.
+        guard hasAccess, !isDeleting else { return }
 
         latestReload += 1
         let thisReload = latestReload
@@ -76,7 +96,8 @@ final class PhotoStore: ObservableObject {
     }
 
     func decide(_ decision: Decision, on asset: PHAsset) {
-        guard let index = queue.firstIndex(of: asset) else { return }
+        // Matched by identifier, since a reload may have replaced the queue's asset objects mid-swipe.
+        guard let index = queue.firstIndex(where: { $0.localIdentifier == asset.localIdentifier }) else { return }
         queue.remove(at: index)
         history.append((asset, decision))
 
@@ -114,8 +135,23 @@ final class PhotoStore: ObservableObject {
     }
 
     /// Moves the marked items to "Recently Deleted". iOS shows its own confirmation first.
+    /// The change is all or nothing, so after any failure every marked item is still in the library.
     func emptyTrash() async {
-        let assets = trash
+        guard !trash.isEmpty, !isDeleting else { return }
+        isDeleting = true
+        defer { isDeleting = false }
+        canRetryDelete = false
+
+        // Fresh objects, so items deleted elsewhere in the meantime (another device, the Photos app) drop out.
+        let fetched = PHAsset.fetchAssets(withLocalIdentifiers: trashIDs, options: nil)
+        var assets: [PHAsset] = []
+        fetched.enumerateObjects { asset, _, _ in assets.append(asset) }
+        let present = Set(assets.map(\.localIdentifier))
+        if present.count < trashIDs.count {
+            trashIDs.removeAll { !present.contains($0) }
+            trash.removeAll { !present.contains($0.localIdentifier) }
+            persist()
+        }
         guard !assets.isEmpty else { return }
 
         do {
@@ -123,21 +159,29 @@ final class PhotoStore: ObservableObject {
                 PHAssetChangeRequest.deleteAssets(assets as NSArray)
             }
         } catch {
-            // Declining the system dialog also lands here, and that isn't a failure worth reporting.
             let nsError = error as NSError
-            let declined = nsError.domain == PHPhotosErrorDomain
-                && nsError.code == PHPhotosError.userCancelled.rawValue
-            if !declined {
+            guard nsError.domain == PHPhotosErrorDomain else {
                 errorMessage = error.localizedDescription
+                return
+            }
+            switch nsError.code {
+            case PHPhotosError.userCancelled.rawValue:
+                // Declining the system dialog lands here, and that isn't a failure worth reporting.
+                break
+            case PHPhotosError.operationInterrupted.rawValue:
+                errorMessage = "iOS interrupted the deletion, so nothing was deleted. Your marked items are still in the trash."
+                canRetryDelete = true
+            default:
+                errorMessage = "Nothing was deleted, and your marked items are still in the trash. \(error.localizedDescription)"
             }
             return
         }
 
-        let deleted = Set(assets.map(\.localIdentifier))
-        trash.removeAll { deleted.contains($0.localIdentifier) }
-        trashIDs.removeAll { deleted.contains($0) }
-        history.removeAll { deleted.contains($0.asset.localIdentifier) }
+        trash.removeAll { present.contains($0.localIdentifier) }
+        trashIDs.removeAll { present.contains($0) }
+        history.removeAll { present.contains($0.asset.localIdentifier) }
         persist()
+        isDeleting = false
         await reload()
     }
 
@@ -149,9 +193,14 @@ final class PhotoStore: ObservableObject {
         await reload()
     }
 
+    /// Written straight to a file after every decision, so closing or killing the app loses nothing.
     private func persist() {
-        let defaults = UserDefaults.standard
-        defaults.set(Array(keptIDs), forKey: Self.keptKey)
-        defaults.set(trashIDs, forKey: Self.trashKey)
+        let saved = Saved(kept: Array(keptIDs), trash: trashIDs)
+        do {
+            try FileManager.default.createDirectory(at: Self.fileURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try JSONEncoder().encode(saved).write(to: Self.fileURL, options: .atomic)
+        } catch {
+            errorMessage = "Couldn't save your progress. \(error.localizedDescription)"
+        }
     }
 }

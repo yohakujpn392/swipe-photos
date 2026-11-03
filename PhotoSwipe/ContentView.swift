@@ -36,8 +36,13 @@ struct ContentView: View {
         .sheet(isPresented: $isTrashOpen) {
             TrashView()
         }
-        .alert("Couldn't delete photos", isPresented: errorIsShown) {
-            Button("OK", role: .cancel) {}
+        .alert("Something went wrong", isPresented: errorIsShown) {
+            if store.canRetryDelete {
+                Button("Try Again") {
+                    Task { await store.emptyTrash() }
+                }
+            }
+            Button(store.canRetryDelete ? "Not Now" : "OK", role: .cancel) {}
         } message: {
             Text(store.errorMessage ?? "")
         }
@@ -46,7 +51,12 @@ struct ContentView: View {
     private var errorIsShown: Binding<Bool> {
         Binding(
             get: { store.errorMessage != nil },
-            set: { if !$0 { store.errorMessage = nil } }
+            set: {
+                if !$0 {
+                    store.errorMessage = nil
+                    store.canRetryDelete = false
+                }
+            }
         )
     }
 

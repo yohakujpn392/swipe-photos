@@ -12,7 +12,8 @@ An iPhone app for cleaning up your photo library with one thumb. It shows your p
 - Videos play on a loop with the sound off. A button on the card turns the sound on.
 - Tap an item in the trash to put it back. Undo brings back your last decision.
 - iOS asks for confirmation once for the whole batch. Deleted items stay in Recently Deleted for 30 days.
-- Your progress survives a restart.
+- Your progress survives a restart, even if iOS closes the app. Items you already kept or marked don't come back.
+- If iOS interrupts a deletion, nothing is deleted, your marked items stay in the trash, and you can tap **Try Again**.
 - The app has no account or server and makes no network requests of its own. It may download originals of your own photos and videos from iCloud through Apple's Photos framework.
 
 ## Run it
@@ -46,7 +47,7 @@ It should print nothing. The app imports only Apple's SwiftUI and Photos framewo
 
 ## Status
 
-Tested in the iPhone simulator: swipes, buttons, Undo, very fast use, restart, restoring from the trash, deleting and declining to delete, denied photo access, limited photo access, a 300-photo library, and short videos: playback, looping, swiping and deleting. The app has also been installed on a real iPhone.
+Tested in the iPhone simulator: swipes, buttons, Undo, very fast use, restart, force-quitting right after a swipe, restoring from the trash, deleting and declining to delete, denied photo access, limited photo access, a 300-photo library, and short videos: playback, looping, swiping and deleting. The app has also been installed on a real iPhone.
 
 With limited access, the test granted 3 of 307 photos. The app showed only those 3, and deleting 2 of them took the library to 305. "Everything reviewed" then refers only to the photos you selected. To change the selection, go to **Settings → Privacy & Security → Photos → Swipe Photos**.
 
