@@ -2,6 +2,10 @@
 
 An iPhone app for cleaning up your photo library with one thumb. It shows your photos and videos one at a time: swipe right to keep, swipe left to mark for deletion. When you finish, you review what you marked and delete it all with one confirmation.
 
+Free and open source. Made by [@yohakujpn](https://x.com/yohakujpn).
+
+<p align="center"><img src="demo/swipe-photos.gif" width="260" alt="Swiping photos right to keep and left to trash"></p>
+
 **Film:** [demo/swipe-photos-film.mp4](demo/swipe-photos-film.mp4) is a 29-second motion film with no sound. It is animated with illustrated photos, not recorded from a phone.
 
 **Browser demo:** [demo/index.html](demo/index.html) is a working simulation with drawn pictures. It never touches real photos.
@@ -10,7 +14,7 @@ An iPhone app for cleaning up your photo library with one thumb. It shows your p
 
 - Marked items stay in the app's trash, and your library doesn't change until you confirm.
 - Videos play on a loop with the sound off. A button on the card turns the sound on.
-- Tap an item in the trash to put it back. Undo brings back your last decision.
+- Tap an item in the trash to put it back. Undo brings back your last decision. **Start Over** in the ··· menu shows everything you kept again.
 - iOS asks for confirmation once for the whole batch. Deleted items stay in Recently Deleted for 30 days.
 - Your progress survives a restart, even if iOS closes the app. Items you already kept or marked don't come back.
 - If iOS interrupts a deletion, nothing is deleted, your marked items stay in the trash, and you can tap **Try Again**.
@@ -52,3 +56,7 @@ Tested in the iPhone simulator: swipes, buttons, Undo, very fast use, restart, f
 With limited access, the test granted 3 of 307 photos. The app showed only those 3, and deleting 2 of them took the library to 305. "Everything reviewed" then refers only to the photos you selected. To change the selection, go to **Settings → Privacy & Security → Photos → Swipe Photos**.
 
 Not tested yet: a full run on a real library with the current version, sound output, long videos, iCloud photos and videos, libraries with thousands of pictures, and changing the selection later.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
