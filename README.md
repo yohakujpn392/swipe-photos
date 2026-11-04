@@ -4,7 +4,7 @@ An iPhone app for cleaning up your photo library with one thumb. It shows your p
 
 Free and open source. Made by Yohaku: [X @yohakujpn](https://x.com/yohakujpn).
 
-**[How to install it →](#install-it-on-your-iphone)**
+**[How to install it →](#install-it-on-your-iphone)** · **[Install it with Claude or ChatGPT →](INSTALL_WITH_AI.md)**
 
 <p align="center"><img src="demo/swipe-photos.gif" width="260" alt="Swiping photos right to keep and left to trash"></p>
 
@@ -25,6 +25,8 @@ Free and open source. Made by Yohaku: [X @yohakujpn](https://x.com/yohakujpn).
 ## Install it on your iPhone
 
 The app isn't on the App Store yet, so you build it yourself with Xcode. It takes about 15 minutes the first time, most of it waiting for Xcode to download.
+
+Prefer an AI to walk you through it? Use the [prompt for Claude or ChatGPT](INSTALL_WITH_AI.md).
 
 **You need:**
 
