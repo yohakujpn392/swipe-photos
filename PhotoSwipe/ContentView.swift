@@ -7,6 +7,7 @@ struct ContentView: View {
     @Environment(\.openURL) private var openURL
 
     @State private var isTrashOpen = false
+    @State private var isStartOverAsked = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -35,6 +36,13 @@ struct ContentView: View {
         }
         .sheet(isPresented: $isTrashOpen) {
             TrashView()
+        }
+        .confirmationDialog("Start over?", isPresented: $isStartOverAsked, titleVisibility: .visible) {
+            Button("Start Over", role: .destructive) {
+                Task { await store.startOver() }
+            }
+        } message: {
+            Text("Everything you kept will show up again. Items in the trash stay there.")
         }
         .alert("Something went wrong", isPresented: errorIsShown) {
             if store.canRetryDelete {
@@ -66,6 +74,17 @@ struct ContentView: View {
                 .font(.headline)
                 .monospacedDigit()
             Spacer()
+            Menu {
+                Button("Start Over", systemImage: "arrow.counterclockwise") {
+                    isStartOverAsked = true
+                }
+                .disabled(store.keptCount == 0)
+            } label: {
+                Image(systemName: "ellipsis")
+                    .frame(height: 22)
+            }
+            .buttonStyle(.bordered)
+            .accessibilityLabel("More")
             Button {
                 isTrashOpen = true
             } label: {
@@ -92,8 +111,8 @@ struct ContentView: View {
             if !store.history.isEmpty {
                 Button("Undo Last") { store.undo() }
             }
-            Button("Start Over") {
-                Task { await store.startOver() }
+            if store.keptCount > 0 {
+                Button("Start Over") { isStartOverAsked = true }
             }
         }
     }
